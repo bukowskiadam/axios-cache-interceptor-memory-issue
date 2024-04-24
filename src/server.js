@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { isMainThread, parentPort } from "node:worker_threads";
 
 import { makeVeryLongRandomString } from "./utils.js";
 
@@ -11,4 +12,8 @@ const server = createServer((req, res) => {
 
 server.listen(SERVER_PORT, () => {
   console.log(`Server running at http://localhost:${SERVER_PORT}/`);
+
+  if (!isMainThread) {
+    parentPort.postMessage("ready");
+  }
 });

@@ -14,3 +14,7 @@ export function makeVeryLongRandomString(length) {
   }
   return result.join("");
 }
+
+export function makeRandomPathString() {
+  return `${makeRandomString()}/${makeRandomString()}/${makeRandomString()}`;
+}
