@@ -18,3 +18,13 @@ export function makeVeryLongRandomString(length) {
 export function makeRandomPathString() {
   return `${makeRandomString()}/${makeRandomString()}/${makeRandomString()}`;
 }
+
+export function printUsedMemory() {
+  const used = process.memoryUsage().heapUsed / 1024 / 1024;
+  console.log(`[Memory] Heap used: ${used.toFixed(2)} MB`);
+}
+
+export function timeout(ms) {
+  console.log(`[Timeout] Waiting for ${ms} ms`);
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}

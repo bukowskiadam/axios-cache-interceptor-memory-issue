@@ -11,7 +11,7 @@ const server = createServer((req, res) => {
 });
 
 server.listen(SERVER_PORT, () => {
-  console.log(`Server running at http://localhost:${SERVER_PORT}/`);
+  console.log(`[Server] Running at http://localhost:${SERVER_PORT}/`);
 
   if (!isMainThread) {
     parentPort.postMessage("ready");

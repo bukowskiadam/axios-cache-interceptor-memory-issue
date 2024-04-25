@@ -1,7 +1,8 @@
 import { fileURLToPath } from "node:url";
 import { Worker } from "node:worker_threads";
 
-import { startAxiosTest } from "./axios.js";
+import { startAxiosTest, printCachedEntries } from "./axios.js";
+import { printUsedMemory, timeout } from "./utils.js";
 
 const startServerThread = () =>
   new Promise((resolve) => {
@@ -14,12 +15,18 @@ const startServerThread = () =>
 
 const serverWorker = await startServerThread();
 
-console.log("Server started - starting the test");
+printUsedMemory();
+
+console.log("--- start test ---");
 
 await startAxiosTest();
 
-console.log("Test finished");
+printCachedEntries();
+printUsedMemory();
 
-console.log(process.memoryUsage());
+await timeout(3000);
+
+printCachedEntries();
+printUsedMemory();
 
 serverWorker.terminate();
