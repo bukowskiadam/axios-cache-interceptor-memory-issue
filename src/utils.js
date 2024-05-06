@@ -1,3 +1,5 @@
+import { log } from "./logger.js";
+
 const RANDOM_STRING_LENGTH = 5;
 
 function makeRandomString() {
@@ -21,10 +23,20 @@ export function makeRandomPathString() {
 
 export function printUsedMemory() {
   const used = process.memoryUsage().heapUsed / 1024 / 1024;
-  console.log(`[Memory] Heap used: ${used.toFixed(2)} MB`);
+  log(`[Memory] Heap used: ${used.toFixed(2)} MB`);
 }
 
 export function timeout(ms) {
-  console.log(`[Timeout] Waiting for ${ms} ms`);
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  log(`[Timeout] Waiting for ${ms} ms`);
+
+  const interval = setInterval(() => {
+    process.stdout.write(".");
+  }, 1000);
+  return new Promise((resolve) =>
+    setTimeout(() => {
+      clearInterval(interval);
+      process.stdout.write("\r");
+      resolve();
+    }, ms)
+  );
 }

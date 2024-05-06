@@ -1,42 +1,40 @@
-import axios from "axios";
-import { setupCache } from "axios-cache-interceptor";
-
 import { makeRandomPathString } from "./utils.js";
+import { log } from "./logger.js";
 
-const axiosCache = axios.create();
-
-setupCache(axiosCache, {
-  ttl: 10 * 1000,
-});
-
-const { SERVER_PORT = 3000 } = process.env;
-const BASE_URL = `http://localhost:${SERVER_PORT}`;
-
-let cached = 0;
-let nonCached = 0;
-
-async function request() {
-  const url = `${BASE_URL}/${makeRandomPathString()}`;
-
-  const response = await axiosCache(url);
-
-  if (response.cached) {
-    cached += 1;
-  } else {
-    nonCached += 1;
-  }
-}
-
-async function pipeline(number) {
-  while (number--) {
-    await request();
-  }
-}
-
-export async function startAxiosTest(
+export async function runAxiosTest({
+  axios,
+  serverPort = 3000,
   pipelinesCount = 10,
-  requestsPerPipeline = 10
-) {
+  requestsPerPipeline = 5,
+}) {
+  const BASE_URL = `http://localhost:${serverPort}`;
+
+  let cached = 0;
+  let nonCached = 0;
+
+  async function request() {
+    const url = `${BASE_URL}/${makeRandomPathString()}`;
+
+    const response = await axios(url);
+
+    if (response.cached) {
+      cached += 1;
+    } else {
+      nonCached += 1;
+    }
+  }
+
+  async function pipeline(number) {
+    while (number--) {
+      await request();
+    }
+  }
+
+  log("[Test] --- start test ---");
+  log(
+    `[Test] Requesting ${pipelinesCount} pipelines with ${requestsPerPipeline} requests each`
+  );
+
   const pipelines = [];
 
   for (let i = 0; i < pipelinesCount; i++) {
@@ -45,20 +43,23 @@ export async function startAxiosTest(
 
   await Promise.all(pipelines);
 
-  console.log(`[Test] Cached: ${cached} / Non-cached: ${nonCached}`);
+  log(
+    `[Test] Ended with responses: Cached: ${cached} / Non-cached: ${nonCached}`
+  );
 }
 
-export function printCachedEntries() {
-  const { data } = axiosCache.storage;
-  let size = 0;
+export function printCacheSummary(axios) {
+  log(`[Cache] Total entries: ${Object.keys(axios.storage.data).length}`);
+  log(`[Cache] Entries data size: ${getAxiosDataSize()} MB`);
+  log(`[Axios] Waiting requests: ${Object.keys(axios.waiting).length}`);
 
-  Object.values(data).forEach((cacheEntry) => {
-    // simplified way to calculate size based on the fact that we return ascii strings
-    size += cacheEntry.data.data.length;
-  });
+  function getAxiosDataSize() {
+    let size = 0;
 
-  console.log(`[Cache] Total entries: ${Object.keys(data).length}`);
-  console.log(
-    `[Cache] Entries data size: ${(size / 1024 / 1024).toFixed(2)} MB`
-  );
+    Object.values(axios.storage.data).forEach((cacheEntry) => {
+      size += cacheEntry.data.data.length;
+    });
+
+    return (size / 1024 / 1024).toFixed(2);
+  }
 }

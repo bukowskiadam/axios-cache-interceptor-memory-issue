@@ -1,19 +1,17 @@
-import { createServer } from "node:http";
-import { isMainThread, parentPort } from "node:worker_threads";
+import { fileURLToPath } from "node:url";
+import { Worker } from "node:worker_threads";
 
-import { makeVeryLongRandomString } from "./utils.js";
+export function startServerThread(port = 3000) {
+  return new Promise((resolve) => {
+    const worker = new Worker(
+      fileURLToPath(new URL("./server-worker.js", import.meta.url)),
+      {
+        workerData: {
+          port,
+        },
+      }
+    );
 
-const { SERVER_PORT = 3000 } = process.env;
-
-const server = createServer((req, res) => {
-  res.setHeader("Content-Type", "text/plain");
-  res.end(makeVeryLongRandomString(1_000_000));
-});
-
-server.listen(SERVER_PORT, () => {
-  console.log(`[Server] Running at http://localhost:${SERVER_PORT}/`);
-
-  if (!isMainThread) {
-    parentPort.postMessage("ready");
-  }
-});
+    worker.on("message", () => resolve(worker));
+  });
+}
