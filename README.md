@@ -64,6 +64,30 @@ I thought it could be turned off with `etag` setting, but it's impossible.
 
 The same problem applies if the server returns the `last-modified` header.
 
+Sample output:
+
+```
+[13:56:29.788] [Info] This test is about to show that cache entries are kept forever if etag is returned by the server.
+
+[13:56:29.827] [Server] Running at http://localhost:3000/
+[13:56:29.828] [Memory] Garbage collecting
+[13:56:29.830] [Memory] Heap used: 5.26 MB
+[13:56:29.830] [Test] --- start test ---
+[13:56:29.830] [Test] Requesting 10 pipelines with 5 requests each
+[13:56:32.513] [Test] Ended with responses: Cached: 0 / Non-cached: 50
+[13:56:32.514] [Cache] Total entries: 50
+[13:56:32.514] [Cache] Entries data size: 47.68 MB
+[13:56:32.514] [Axios] Waiting requests: 0
+[13:56:32.514] [Memory] Garbage collecting
+[13:56:32.516] [Memory] Heap used: 54.09 MB
+[13:56:32.516] [Timeout] Waiting for 6000 ms
+[13:56:38.518] [Cache] Total entries: 50
+[13:56:38.518] [Cache] Entries data size: 47.68 MB
+[13:56:38.519] [Axios] Waiting requests: 0
+[13:56:38.519] [Memory] Garbage collecting
+[13:56:38.527] [Memory] Heap used: 53.97 MB
+```
+
 #### Solution
 
 It can be fixed if you override `headerInterpreter` to remove those headers.
