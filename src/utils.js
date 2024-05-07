@@ -22,6 +22,15 @@ export function makeRandomPathString() {
 }
 
 export function printUsedMemory() {
+  if (global.gc) {
+    log("[Memory] Garbage collecting");
+    global.gc();
+  } else {
+    log(
+      "[Memory] Garbage collection unavailable. Pass --expose-gc when launching node."
+    );
+  }
+
   const used = process.memoryUsage().heapUsed / 1024 / 1024;
   log(`[Memory] Heap used: ${used.toFixed(2)} MB`);
 }
