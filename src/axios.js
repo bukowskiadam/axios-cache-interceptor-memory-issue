@@ -1,4 +1,4 @@
-import { makeRandomPathString } from "./utils.js";
+import { makeRandomPathString, makeVeryLongRandomString } from "./utils.js";
 import { log } from "./logger.js";
 
 export async function runAxiosTest({
@@ -15,7 +15,22 @@ export async function runAxiosTest({
   async function request() {
     const url = `${BASE_URL}/${makeRandomPathString()}`;
 
-    const response = await axios(url);
+    /**
+     * this is needed to trigger the issue with `waiting` promises, because
+     * we use the (sliced string) which keeps the original string in memory
+     * causing the url to be a 1MB object in memory
+     */
+    const veryLongString = makeVeryLongRandomString(1_000_000);
+    const concatenated = `${veryLongString}${url}`;
+    let sliced = concatenated.substring(1_000_000);
+    /**
+     * This is the fix for the issue with (sliced string) keeping the original
+     * string in memory.
+     * Uncomment to see the lower memory consumption in the waiting test.
+     */
+    // sliced = Buffer.from(sliced).toString("utf-8");
+
+    const response = await axios(sliced);
 
     if (response.cached) {
       cached += 1;

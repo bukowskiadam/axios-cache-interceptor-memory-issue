@@ -92,3 +92,64 @@ Sample output:
 
 It can be fixed if you override `headerInterpreter` to remove those headers.
 Uncomment the code in the test file to see how it cleans out the memory.
+
+### Waiting
+
+```bash
+node --expose-gc test/waiting.js
+```
+
+This test shows the problem with hanging promises in the `axios.waiting` object.
+
+When there is a limit on the in-memory cache entries, they are removed when the
+new entries are about to be stored, but the related deferred promises in the
+`axios.waiting` are not cleared after the requests are resolved.
+
+This makes the `axios.waiting` object to grow over time if you do not hit
+the same request again (having the same unique key).
+
+In my case the problem was that we extracted the URL from the long document,
+what caused v8 engine to use `(sliced string)` type of the object, which keeps
+the reference to the original (long) string in memory, so every waiting promise
+caused to store many kB in memory. To show the issue I have added this logic
+in the test - creating a very long string, then take just the part of it.
+
+Sample output:
+
+```
+[08:45:12.258] [Info] This test is about to show that max entries setting causes that some waiting promises are kept even if the request has finished.
+
+[08:45:12.295] [Server] Running at http://localhost:3000/
+[08:45:12.296] [Memory] Garbage collecting
+[08:45:12.298] [Memory] Heap used: 5.32 MB
+[08:45:12.298] [Test] --- start test ---
+[08:45:12.298] [Test] Requesting 10 pipelines with 5 requests each
+[08:45:15.307] [Test] Ended with responses: Cached: 0 / Non-cached: 50
+[08:45:15.308] [Cache] Total entries: 9
+[08:45:15.308] [Cache] Entries data size: 8.58 MB
+[08:45:15.308] [Axios] Waiting requests: 19
+[08:45:15.308] [Memory] Garbage collecting
+[08:45:15.310] [Memory] Heap used: 47.65 MB
+[08:45:15.310] [Timeout] Waiting for 11000 ms
+[08:45:26.312] [Cache] Total entries: 0
+[08:45:26.312] [Cache] Entries data size: 0.00 MB
+[08:45:26.312] [Axios] Waiting requests: 19
+[08:45:26.312] [Memory] Garbage collecting
+[08:45:26.315] [Memory] Heap used: 24.42 MB
+```
+
+Please notice the Heap used. The formula to verify keeping the original string
+in memory is something like:
+```
+<hanging requests> * 1_000_000 bytes + the initial memory consumption
+```
+
+#### Solution
+
+1. In my opinion this is a bug in axios-cache-interceptor that `axios.waiting`
+   is not cleared then the request is resolved, but it was removed from
+   the in-memory adapter due to the max entries limit.
+2. Solution for the `(sliced string)` problem is to clone bytes into
+   the new Buffer and stringify it back again. This creates a fresh string
+   object, that does not keep the reference to the original (long) string.
+   I've left code to uncomment in the `src/axios.js:31`
